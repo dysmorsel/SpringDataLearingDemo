@@ -139,5 +139,95 @@ public class Indent {
 }
 ```
 
+- 编写接口（Repository 接口概述）
 
+  - Repository 接口是SpringData 的一个核心接口，它不提供任何方法，开发者需要在自己定义的接口中声明需要的方法 ``public interface Repository<T, IDextends Serializable> { } ``
+  - Spring Data可以让我们只定义接口，只要**遵循Spring Data的规范**，就无需写实现类。 
+  - 基础的 Repository提供了最基本的数据访问功能，其几个子接口则扩展了一些功能。它们的继承关系如下： 
+    - Repository：仅仅是一个标识，表明任何继承它的均为仓库接口类
+    - CrudRepository：继承Repository，实现了一组CRUD相关的方法 
+    - PagingAndSortingRepository：继承CrudRepository，实现了一组分页排序相关的方法 
+    - JpaRepository：继承PagingAndSortingRepository，实现了一组JPA规范相关的方法 
+    - 自定义的 XxxxRepository 建议继承 JpaRepository，这样的XxxxRepository接口就具备了**通用的数据访问控制层的能力**。
+    - JpaSpecificationExecutor：不属于Repository体系，实现一组JPACriteria 查询相关的方法 
+
+- SpringData 方法定义规范
+
+  - 简单条件查询：查询某一个实体类或者集合 按照Spring Data 的规范，查询方法以**find | read | get** 开头， 涉及条件查询时，条件的属性用条件关键字连接，要注意的是：**条件属性以首字母大写**。 例如：
+
+  ```java
+  public interface PersonRepository extends JpaRepository<Person,Integer>,JpaSpecificationExecutor<Person>,PersonDao {
+  	/**
+       * 根据lastName找到相应的Person
+       * @param lastName 实体类中的lastName属性
+       * @return 返回对应的Person类
+       */
+      Person getByLastName(String lastName);
+  	/**
+       *找出同时满足lastName以"XX"开头并且id小于"YY"时的所有Person
+       * @param lastName 设定lastName需要以该字段开头
+       * @param id 设定id需要小于该数字
+       * @return 返回对应的集合
+       */
+      List<Person> getByLastNameStartingWithAndIdLessThan(String lastName, Integer id);
+  }
+  ```
+
+  条件查询支持多种关键字，具体的内容请参考相关资料。
+
+  - 使用@Query注解：@Query支持自定义查询，这种查询可以声明在 Repository方法中，**摆脱像命名查询那样的约束，将查询直接在相应的接口方法中声明**，结构更为清晰，这是Spring data 的特有实现。查询语句默认使用JPQL，如果要使用原生SQL，则需要在注解中的nativeQuery属性中定义为true。
+
+  ```java
+  	/**
+       * 使用自定义条件查询
+       * @return 返回id最大的Person
+       */
+      @Query("SELECT p FROM Person p WHERE p.id =(SELECT max (p2.id) FROM Person p2)")
+      Person getMaxPerson();
+  ```
+
+  可以在查询语句里面传入参数，在语句中使用``=:name``这种方式定义该参数名，然后使用@Param注解传入参数，注意保持参数名称一致。如果不使用@Param注解，那么当有多个参数时，请保持顺序一致。
+
+  - 使用@Modifying注解：自定义查询还支持update和delete操作。一旦涉及到了数据库的修改时，需要为改方法添加@Modifying注解，同时为其添加@Transactional注解申明其为可修改事务。
+  - 注意事项：所有涉及到数据库修改操作时都需要**添加@Transactional注解**，如果自定义接口需要实现数据库的CRUD，那么需要为其**实现**一个Service，在Service的实现方法里面添加@Transactional注解。
+
+  ```java
+  @Service
+  public class PersonService {
+
+      @Autowired
+      private PersonRepository personRepository;
+
+      //在saveAll()方法上添加@Transactional注解
+      @Transactional
+      public void savePersons(List<Person> people){
+          personRepository.saveAll(people);
+      }
+  }
+  ```
+
+  - 其他接口的查询请查看测试代码的示例。
+  - 自定义Repository 方法：
+    - 定义一个接口:声明要添加的,并自实现的方法
+    - 提供该接口的实现类: 类名需在要声明的Repository后添加Impl,并实现方法
+    - 声明 Repository接口,并继承已经声明的接口
+    - 使用
+    - 注意: 默认情况下,Spring Data 会在 base-package中查找"接口名Impl"作为实现类.也可以通过　repository-impl-postfix　声明后缀。
+
+  ```java
+  public class PersonRepositoryImpl implements PersonDao{
+
+      @PersistenceContext
+      private EntityManager entityManager;
+
+      //实现自定义的方法
+      @Override
+      public void find() {
+          Person person = entityManager.find(Person.class,12);
+          System.out.println("--->" + person.toString());
+      }
+  }
+  ```
+
+  ​
 

@@ -42,20 +42,25 @@ public class JPATest {
         System.out.println(dataSource.getConnection());
     }
 
+    /**
+     * 测试自定义方法
+     */
     @Test
-    public void testPersonService(){
-        Person p1 = new Person();
-        p1.setAge(11);
-        p1.setLastName("Tom");
-        p1.setEmail("aa@163.com");
-
-        Person p2 = new Person();
-        p2.setAge(13);
-        p2.setLastName("Jack");
-        p2.setEmail("bb@163.com");
-
+    public void testFind(){
+        personRepository.find();
     }
 
+    /**
+     * 测试Modifying和自定义update
+     */
+    @Test
+    public void testModifying(){
+        personRepository.update("aaa",1);
+    }
+
+    /**
+     * 测试简单查询
+     */
     @Test
     public void testGet(){
 
@@ -66,8 +71,11 @@ public class JPATest {
         System.out.println(person);
     }
 
+    /**
+     * 测试CrudRepository中的saveAll()方法
+     */
     @Test
-    public void testCrud(){
+    public void testCrudRepository(){
 
         List<Person> people = new ArrayList<Person>();
 
@@ -85,28 +93,36 @@ public class JPATest {
 
     @Test
     public void testIndentCrud(){
-        List<Person> people = (List<Person>) personRepository.findAll();
+        List<Person> people = personRepository.findAll();
         List<Indent> indents = new ArrayList<Indent>();
-        for (int i = 0; i < people.size(); i ++){
+        for (Person aPeople : people) {
             Indent indent = new Indent();
-            indent.setIndentName(people.get(i).getLastName());
-            indent.setPerson(people.get(i));
+            indent.setIndentName(aPeople.getLastName());
+            indent.setPerson(aPeople);
             indents.add(indent);
         }
         indentService.saveIndents(indents);
     }
 
+    /**
+     * 测试PagingAndSortingRepository中的查询结果分页
+     */
     @Test
-    public void testPage(){
+    public void testPagingAndSortingRepository(){
+        //页面编号
         int pageNo = 3;
+        //页面大小
         int pageSize = 5;
 
+        //使用Order类选择排序测略，Direction包含两个枚举，即升序和降序，指定哪一个属性使用排序测量。
         Sort.Order order1 = new Sort.Order(Sort.Direction.DESC,"id");
         Sort.Order order2 = new Sort.Order(Sort.Direction.ASC,"email");
         Sort sort = Sort.by(order1,order2);
 
+        //使用PageRequest类传入分页和排序的策略，然后传入到findAll方法。得到需要的Page
         PageRequest pageRequest = PageRequest.of(pageNo,pageSize,sort);
         Page<Person> page =  personRepository.findAll(pageRequest);
+
 
         System.out.println("总记录数: "+ page.getTotalElements());
         System.out.println("当前第几页："+ page.getNumber());
@@ -117,8 +133,11 @@ public class JPATest {
 
     }
 
+    /**
+     * 测试JpaSpecificationExecutor
+     */
     @Test
-    public void testJpa(){
+    public void testJpaSpecificationExecutor(){
         int pageNo = 3;
         int pageSize = 5;
 
